@@ -267,6 +267,7 @@ if get_option('mangoapp')
     files(
       'app/main.cpp',
     ),
+    opengl_files,
     c_args : [
       pre_args,
       vulkan_wsi_args
