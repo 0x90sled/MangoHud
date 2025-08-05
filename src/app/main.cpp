@@ -13,6 +13,8 @@
 #include <thread>
 #include <unistd.h>
 #include "../overlay.h"
+#include "../file_utils.h"
+#include "../gl/gl_hud.h"
 #include "notify.h"
 #include "mangoapp.h"
 #include "mangoapp_proto.h"
@@ -30,6 +32,10 @@
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
 using namespace std;
+
+#define GLX_RENDERER_DEVICE_ID_MESA                      0x8184
+
+bool glx_mesa_queryInteger(int attrib, unsigned int *value);
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -341,7 +347,14 @@ int main(int, char**)
     }
 
     HUDElements.vendorID = vendorID;
-    init_gpu_stats(vendorID, 0, params);
+
+    uint32_t device_id = 0;
+    glx_mesa_queryInteger(GLX_RENDERER_DEVICE_ID_MESA, &device_id);
+
+    SPDLOG_DEBUG("GL device id: {:04X}", device_id);
+    init_gpu_stats(vendorID, device_id, params);
+    sw_stats.gpuName = gpu = remove_parentheses(deviceName);
+    SPDLOG_DEBUG("gpu: {}", gpu);
     init_system_info();
     sw_stats.engine = EngineTypes::GAMESCOPE;
     std::thread(msg_read_thread).detach();
