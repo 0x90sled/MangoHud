@@ -13,6 +13,7 @@
 #include <thread>
 #include <unistd.h>
 #include "../overlay.h"
+#include "../file_utils.h"
 #include "notify.h"
 #include "mangoapp.h"
 #include "mangoapp_proto.h"
@@ -372,6 +373,8 @@ int main(int, char**)
     }
 
     HUDElements.vendorID = vendorID;
+    sw_stats.gpuName = gpu = remove_parentheses(deviceName);
+    SPDLOG_DEBUG("gpu: {}", gpu);
     init_system_info();
     sw_stats.engine = EngineTypes::GAMESCOPE;
     std::thread(msg_read_thread).detach();
