@@ -1,6 +1,7 @@
 #include "file_utils.h"
 #include <filesystem.h>
 #include <string>
+#include <array>
 #include <spdlog/spdlog.h>
 #include "hud_elements.h"
 #include "overlay.h"
@@ -16,22 +17,35 @@ class WineSync {
             {"ntsync", "NTsync"},
         };
 
-        pid_t pid;
+        // what to look for, best guess first. ntsync/winesync have real
+        // /dev nodes so they're a sure thing, esync/fsync are just "library
+        // is loaded" hints. NONE is for display only, don't search for it.
+        inline static const std::array<const char*, 4> sync_order {{"ntsync", "winesync", "fsync", "esync"}};
+
+        pid_t pid = 0; // 0 = haven't checked yet. gamescope gives us -1 or a real pid, never 0
         std::string method = "NONE";
         bool inside_wine = true;
     public:
         void determine_sync_variant() {
 #ifdef __linux__
-            // check that's were inside wine
-            std::string wineProcess = get_exe_path();
+            // start fresh every time, otherwise stale results stick around
+            // when the game changes
+            method = "NONE";
+            inside_wine = false;
+
+            // whose exe do we check? our own in layer mode (pid <= 0), but in
+            // mangoapp we're not wine — the game is, so look at its exe instead
+            std::string wineProcess = pid > 0
+                ? read_symlink((fs::path("/proc") / std::to_string(pid) / "exe").string())
+                : get_exe_path();
             auto n = wineProcess.find_last_of('/');
             std::string preloader = wineProcess.substr(n + 1);
-            if (preloader != "wine-preloader" && preloader != "wine64-preloader"){
-                inside_wine = false;
+            if (preloader != "wine-preloader" && preloader != "wine64-preloader")
                 return;
-            }
 
-            for (auto& [key, val] : methods) {
+            inside_wine = true;
+
+            for (auto key : sync_order) {
                 if (lib_loaded(key, pid)) {
                     method = key;
                     break;

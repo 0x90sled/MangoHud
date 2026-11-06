@@ -1686,8 +1686,12 @@ void HudElements::winesync() {
     if (!winesync_ptr)
         winesync_ptr = std::make_unique<WineSync>();
 
+    // do this first! it used to sit inside the if() below, so once we
+    // decided "not wine" we'd never check again, even after swapping to
+    // a wine game
+    winesync_ptr->set_pid(HUDElements.g_gamescopePid);
+
     if (winesync_ptr->valid()) {
-        winesync_ptr->set_pid(HUDElements.g_gamescopePid);
         ImGui::PushFont(HUDElements.sw_stats->font_secondary);
         ImguiNextColumnFirstItem();
         HUDElements.TextColored(HUDElements.colors.engine, "%s", "WSYNC");
